@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"time"
 
 	"golang.org/x/net/context"
@@ -45,10 +48,54 @@ func List(svc *calendar.Service) {
 	}
 }
 
+func newOAuthClient(ctx context.Context, config *oauth2.Config) *http.Client {
+	var path = os.Getenv("HOME") + "/.cache/google-calendar-cli/token"
+
+	t, err := tokenFromFile(path)
+	if err != nil {
+		fmt.Println(err)
+		t, err = tokenFromWeb(ctx, config)
+		if err != nil {
+			panic(err)
+		}
+		err := saveToken(path, t)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return config.Client(ctx, t)
+}
+
+func tokenFromFile(path string) (*oauth2.Token, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	t := new(oauth2.Token)
+	err = json.NewDecoder(f).Decode(t)
+	return t, err
+}
+
+func saveToken(path string, token *oauth2.Token) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return json.NewEncoder(f).Encode(token)
+}
+
 // Ref: https://github.com/google/google-api-go-client/blob/master/examples/calendar.go
 // Copyright 2014 The Go Authors. All rights reserved.
-// TODO: save token
-func newOAuthClient(ctx context.Context, config *oauth2.Config) *http.Client {
+func tokenFromWeb(ctx context.Context, config *oauth2.Config) (*oauth2.Token, error) {
 	ch := make(chan string)
 	randState := fmt.Sprintf("st%d", time.Now().UnixNano())
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -76,9 +123,5 @@ func newOAuthClient(ctx context.Context, config *oauth2.Config) *http.Client {
 	fmt.Println("Access to %s", authURL)
 	code := <-ch
 
-	token, err := config.Exchange(ctx, code)
-	if err != nil {
-		panic(err)
-	}
-	return config.Client(ctx, token)
+	return config.Exchange(ctx, code)
 }

@@ -23,21 +23,31 @@ func main() {
 
 	c := newOAuthClient(ctx, config)
 
-	cal, err := calendar.New(c)
+	svc, err := calendar.New(c)
 	if err != nil {
 		panic(err)
 	}
-	list, err := cal.CalendarList.List().Do()
+
+	List(svc)
+}
+
+// XXX: Type of event
+// func AddEvent(svc *calendar.Service, cal string, event Event) {
+// }
+
+func List(svc *calendar.Service) {
+	list, err := svc.CalendarList.List().Do()
 	if err != nil {
 		panic(err)
 	}
 	for _, i := range list.Items {
-		fmt.Println(i)
+		fmt.Println(i.Summary)
 	}
 }
 
 // Ref: https://github.com/google/google-api-go-client/blob/master/examples/calendar.go
 // Copyright 2014 The Go Authors. All rights reserved.
+// TODO: save token
 func newOAuthClient(ctx context.Context, config *oauth2.Config) *http.Client {
 	ch := make(chan string)
 	randState := fmt.Sprintf("st%d", time.Now().UnixNano())

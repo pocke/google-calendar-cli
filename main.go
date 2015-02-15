@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/codegangsta/cli"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -25,19 +27,33 @@ func main() {
 		panic(err)
 	}
 
-	List(svc)
+	app := cli.NewApp()
+	app.Commands = []cli.Command{
+		{
+			Name:      "list",
+			ShortName: "l",
+			Action:    toCommandFunc(svc, List),
+		},
+	}
+	app.Run(os.Args)
 }
 
 // XXX: Type of event
 // func AddEvent(svc *calendar.Service, cal string, event Event) {
 // }
 
-func List(svc *calendar.Service) {
+func List(svc *calendar.Service, _ *cli.Context) {
 	list, err := svc.CalendarList.List().Do()
 	if err != nil {
 		panic(err)
 	}
 	for _, i := range list.Items {
 		fmt.Println(i.Summary)
+	}
+}
+
+func toCommandFunc(svc *calendar.Service, f func(*calendar.Service, *cli.Context)) func(*cli.Context) {
+	return func(c *cli.Context) {
+		f(svc, c)
 	}
 }

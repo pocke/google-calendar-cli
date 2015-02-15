@@ -14,7 +14,13 @@ import (
 )
 
 func newOAuthClient(ctx context.Context, config *oauth2.Config) *http.Client {
-	var path = os.Getenv("HOME") + "/.cache/google-calendar-cli/token"
+	path_tail := "/google-calendar-cli/token"
+	var path string
+	if cache_dir := os.Getenv("XDG_CACHE_HOME"); cache_dir != "" {
+		path = cache_dir + path_tail
+	} else {
+		path = os.Getenv("HOME") + "/.cache" + path_tail
+	}
 
 	t, err := tokenFromFile(path)
 	if err != nil {

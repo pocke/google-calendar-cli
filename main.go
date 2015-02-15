@@ -33,13 +33,42 @@ func main() {
 			Name:   "list",
 			Action: toCommandFunc(svc, List),
 		},
+		{
+			Name: "event",
+			Subcommands: []cli.Command{
+				{
+					Name:   "add",
+					Action: toCommandFunc(svc, AddEvent),
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  "calendar-name, c",
+							Value: "",
+						},
+						cli.StringFlag{
+							Name:  "calendar-id, i",
+							Value: "",
+						},
+						cli.StringFlag{
+							Name:  "template, t",
+							Value: "",
+						},
+						cli.StringFlag{
+							Name: "Week-day, w",
+						},
+						cli.IntFlag{
+							Name:  "next-week, n",
+							Value: 0,
+						},
+					},
+				},
+			},
+		},
 	}
 	app.Run(os.Args)
 }
 
-// XXX: Type of event
-// func AddEvent(svc *calendar.Service, cal string, event Event) {
-// }
+func AddEvent(svc *calendar.Service, ctx *cli.Context) {
+}
 
 func List(svc *calendar.Service, _ *cli.Context) {
 	list, err := svc.CalendarList.List().Do()
@@ -56,3 +85,30 @@ func toCommandFunc(svc *calendar.Service, f func(*calendar.Service, *cli.Context
 		f(svc, c)
 	}
 }
+
+func initCacheDir() (string, string) {
+	path_tail := "/google-calendar-cli"
+	var path string
+	if cache_dir := os.Getenv("XDG_CACHE_HOME"); cache_dir != "" {
+		path = cache_dir + path_tail
+	} else {
+		path = os.Getenv("HOME") + "/.cache" + path_tail
+	}
+
+	if _, err := os.Stat(path); err != nil {
+		if err := os.MkdirAll(path, 0755); err != nil {
+			panic(err)
+		}
+	}
+
+	eventTemplatesPath := path + "/event_templates"
+	if _, err := os.Stat(eventTemplatesPath); err != nil {
+		if err := os.MkdirAll(eventTemplatesPath, 0755); err != nil {
+			panic(err)
+		}
+	}
+
+	return path, eventTemplatesPath
+}
+
+var CacheDirPath, EventTemplatesPath = initCacheDir()

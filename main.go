@@ -30,9 +30,8 @@ func main() {
 	app := cli.NewApp()
 	app.Commands = []cli.Command{
 		{
-			Name:      "list",
-			ShortName: "l",
-			Action:    toCommandFunc(svc, List),
+			Name:   "list",
+			Action: toCommandFunc(svc, List),
 		},
 	}
 	app.Run(os.Args)
